@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Daybreak — Your Daily Planner</title>
+  <meta name="description" content="A beautiful day planner that refreshes its look every morning, inspired by nature." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <!-- Ambient background layer -->
+  <div id="ambient-bg" class="ambient-bg">
+    <canvas id="particle-canvas"></canvas>
+  </div>
+
+  <!-- Main app container -->
+  <div class="app-shell">
+
+    <!-- Top bar -->
+    <header class="top-bar">
+      <div class="top-bar__brand">
+        <span class="brand-icon" id="brand-icon">✦</span>
+        <span class="brand-name">Daybreak</span>
+      </div>
+      <div class="top-bar__meta">
+        <span class="theme-label" id="theme-label"></span>
+        <button class="btn-icon" id="btn-shuffle" title="Shuffle theme">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 3 21 3 21 8"/><line x1="4" y1="20" x2="21" y2="3"/><polyline points="21 16 21 21 16 21"/><line x1="15" y1="15" x2="21" y2="21"/><line x1="4" y1="4" x2="9" y2="9"/></svg>
+        </button>
+      </div>
+    </header>
+
+    <!-- Hero section -->
+    <section class="hero" id="hero-section">
+      <p class="hero__greeting" id="greeting-text"></p>
+      <h1 class="hero__date" id="hero-date"></h1>
+      <p class="hero__quote" id="hero-quote"></p>
+      <div class="hero__clock" id="hero-clock"></div>
+    </section>
+
+    <!-- Stats ribbon -->
+    <div class="stats-ribbon">
+      <div class="stat-card" id="stat-total">
+        <span class="stat-card__value">0</span>
+        <span class="stat-card__label">Tasks</span>
+      </div>
+      <div class="stat-card" id="stat-done">
+        <span class="stat-card__value">0</span>
+        <span class="stat-card__label">Done</span>
+      </div>
+      <div class="stat-card" id="stat-progress">
+        <span class="stat-card__value">0%</span>
+        <span class="stat-card__label">Progress</span>
+      </div>
+      <div class="stat-card" id="stat-focus">
+        <span class="stat-card__value">0h</span>
+        <span class="stat-card__label">Focus</span>
+      </div>
+    </div>
+
+    <!-- Main content area -->
+    <main class="main-content">
+      <!-- Left: Timeline -->
+      <section class="panel panel--timeline">
+        <div class="panel__header">
+          <h2 class="panel__title">Today's Timeline</h2>
+        </div>
+        <div class="timeline" id="timeline-container">
+          <!-- Rendered by JS -->
+        </div>
+      </section>
+
+      <!-- Right: Tasks + Notes -->
+      <aside class="panel panel--sidebar">
+        <!-- Tasks -->
+        <div class="panel__header">
+          <h2 class="panel__title">Tasks</h2>
+          <button class="btn-add" id="btn-add-task" title="Add task">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          </button>
+        </div>
+
+        <!-- Add task form -->
+        <form class="task-form hidden" id="task-form">
+          <input type="text" id="task-input" class="task-form__input" placeholder="What needs to be done?" autocomplete="off" />
+          <div class="task-form__row">
+            <select id="task-priority" class="task-form__select">
+              <option value="low">Low</option>
+              <option value="medium" selected>Medium</option>
+              <option value="high">High</option>
+            </select>
+            <input type="time" id="task-time" class="task-form__time" />
+            <button type="submit" class="btn-submit">Add</button>
+          </div>
+        </form>
+
+        <!-- Task list -->
+        <ul class="task-list" id="task-list">
+          <!-- Rendered by JS -->
+        </ul>
+        <p class="empty-state" id="task-empty">No tasks yet — add one above ✨</p>
+
+        <!-- Notes -->
+        <div class="panel__header panel__header--notes">
+          <h2 class="panel__title">Quick Notes</h2>
+        </div>
+        <textarea class="notes-area" id="notes-area" placeholder="Jot down your thoughts..."></textarea>
+      </aside>
+    </main>
+
+    <!-- Focus timer modal -->
+    <div class="focus-modal hidden" id="focus-modal">
+      <div class="focus-modal__card">
+        <h3 class="focus-modal__title">Focus Timer</h3>
+        <div class="focus-modal__display" id="focus-display">25:00</div>
+        <div class="focus-modal__controls">
+          <button class="btn-focus" id="focus-start">Start</button>
+          <button class="btn-focus btn-focus--secondary" id="focus-reset">Reset</button>
+          <button class="btn-focus btn-focus--secondary" id="focus-close">Close</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Focus trigger -->
+    <button class="fab" id="btn-focus" title="Focus timer">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+    </button>
+
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
