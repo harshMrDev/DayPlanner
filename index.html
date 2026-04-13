@@ -59,6 +59,10 @@
         <span class="stat-card__value">0h</span>
         <span class="stat-card__label">Focus</span>
       </div>
+      <div class="stat-card" id="stat-history">
+        <span class="stat-card__value">0</span>
+        <span class="stat-card__label">Past Done</span>
+      </div>
     </div>
 
     <!-- Main content area -->
@@ -110,6 +114,22 @@
         <textarea class="notes-area" id="notes-area" placeholder="Jot down your thoughts..."></textarea>
       </aside>
     </main>
+
+    <section class="panel panel--history">
+      <div class="panel__header panel__header--history">
+        <div>
+          <h2 class="panel__title">Activity Log</h2>
+          <p class="panel__subtitle">Previous days stay here, including completed and unfinished tasks.</p>
+        </div>
+        <div class="history-filters" id="history-filters">
+          <button type="button" class="history-filter history-filter--active" data-history-filter="all">All</button>
+          <button type="button" class="history-filter" data-history-filter="completed">Completed</button>
+          <button type="button" class="history-filter" data-history-filter="missed">Missed</button>
+        </div>
+      </div>
+      <div class="history-list" id="history-list"></div>
+      <p class="empty-state" id="history-empty">Past task logs will appear after a new day starts.</p>
+    </section>
 
     <!-- Focus timer modal -->
     <div class="focus-modal hidden" id="focus-modal">

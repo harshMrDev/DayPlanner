@@ -196,6 +196,20 @@ function todayKey() {
   return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
 }
 
+function dateFromKey(key) {
+  const [year, month, day] = key.split('-').map(Number);
+  return new Date(year, month, day);
+}
+
+function formatDateKey(key) {
+  return dateFromKey(key).toLocaleDateString('en-US', {
+    weekday: 'short',
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric'
+  });
+}
+
 function formatTime12(h24) {
   const h = h24 % 12 || 12;
   const ampm = h24 < 12 ? 'AM' : 'PM';
@@ -206,6 +220,18 @@ function uid() {
   return Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
 }
 
+function normalizeTask(task) {
+  return {
+    id: task.id || uid(),
+    text: task.text || 'Untitled task',
+    priority: task.priority || 'medium',
+    time: task.time || '',
+    done: Boolean(task.done),
+    createdAt: task.createdAt || Date.now(),
+    completedAt: task.completedAt || null
+  };
+}
+
 // ─── State ───────────────────────────────────────────────────
 let currentThemeIndex = getDayOfYear() % THEMES.length;
 let tasks = [];
@@ -213,6 +239,7 @@ let focusInterval = null;
 let focusSeconds = 25 * 60;
 let focusRunning = false;
 let totalFocusMinutes = 0;
+let historyFilter = 'all';
 
 // ─── DOM refs ────────────────────────────────────────────────
 const $ = (sel) => document.querySelector(sel);
@@ -288,7 +315,7 @@ function renderTimeline() {
 
     const content = scheduledTasks.length > 0
       ? scheduledTasks.map(t =>
-          `<span class="timeline-slot__task ${t.done ? 'timeline-slot__task--done' : ''}">${t.text}</span>`
+          `<span class="timeline-slot__task ${t.done ? 'timeline-slot__task--done' : ''}">${escapeHtml(t.text)}</span>`
         ).join(', ')
       : '';
 
@@ -313,7 +340,7 @@ function renderTimeline() {
 function loadTasks() {
   try {
     const saved = localStorage.getItem('daybreak_tasks_' + todayKey());
-    tasks = saved ? JSON.parse(saved) : [];
+    tasks = saved ? JSON.parse(saved).map(normalizeTask) : [];
   } catch { tasks = []; }
 }
 
@@ -331,16 +358,25 @@ function saveNotes() {
 }
 
 function addTask(text, priority, time) {
-  tasks.push({ id: uid(), text, priority, time, done: false, createdAt: Date.now() });
+  tasks.push(normalizeTask({ id: uid(), text, priority, time, done: false, createdAt: Date.now() }));
   saveTasks();
   renderTasks();
   renderTimeline();
   updateStats();
+  renderHistory();
 }
 
 function toggleTask(id) {
   const task = tasks.find(t => t.id === id);
-  if (task) { task.done = !task.done; saveTasks(); renderTasks(); renderTimeline(); updateStats(); }
+  if (task) {
+    task.done = !task.done;
+    task.completedAt = task.done ? Date.now() : null;
+    saveTasks();
+    renderTasks();
+    renderTimeline();
+    updateStats();
+    renderHistory();
+  }
 }
 
 function deleteTask(id) {
@@ -349,6 +385,7 @@ function deleteTask(id) {
   renderTasks();
   renderTimeline();
   updateStats();
+  renderHistory();
 }
 
 function renderTasks() {
@@ -397,11 +434,86 @@ function updateStats() {
   const total = tasks.length;
   const done = tasks.filter(t => t.done).length;
   const progress = total > 0 ? Math.round((done / total) * 100) : 0;
+  const history = getTaskHistory();
+  const pastDone = history.reduce((sum, day) => sum + day.tasks.filter(t => t.done).length, 0);
 
   $('#stat-total .stat-card__value').textContent = total;
   $('#stat-done .stat-card__value').textContent = done;
   $('#stat-progress .stat-card__value').textContent = progress + '%';
   $('#stat-focus .stat-card__value').textContent = totalFocusMinutes > 0 ? Math.round(totalFocusMinutes) + 'm' : '0m';
+  $('#stat-history .stat-card__value').textContent = pastDone;
+}
+
+function getTaskHistory() {
+  const today = todayKey();
+  const days = [];
+
+  for (let index = 0; index < localStorage.length; index++) {
+    const key = localStorage.key(index);
+    if (!key || !key.startsWith('daybreak_tasks_')) continue;
+
+    const dateKey = key.replace('daybreak_tasks_', '');
+    if (dateKey === today) continue;
+
+    const date = dateFromKey(dateKey);
+    if (Number.isNaN(date.getTime())) continue;
+
+    try {
+      const dayTasks = JSON.parse(localStorage.getItem(key) || '[]').map(normalizeTask);
+      if (dayTasks.length) days.push({ key: dateKey, date, tasks: dayTasks });
+    } catch {}
+  }
+
+  return days.sort((a, b) => b.date - a.date);
+}
+
+function renderHistory() {
+  const list = $('#history-list');
+  const empty = $('#history-empty');
+  if (!list || !empty) return;
+
+  const days = getTaskHistory()
+    .map(day => ({
+      ...day,
+      visibleTasks: day.tasks.filter(task => {
+        if (historyFilter === 'completed') return task.done;
+        if (historyFilter === 'missed') return !task.done;
+        return true;
+      })
+    }))
+    .filter(day => day.visibleTasks.length);
+
+  if (!days.length) {
+    list.innerHTML = '';
+    empty.classList.remove('hidden');
+    return;
+  }
+
+  empty.classList.add('hidden');
+  list.innerHTML = days.map(day => {
+    const done = day.tasks.filter(task => task.done).length;
+    const total = day.tasks.length;
+
+    return `
+      <article class="history-day">
+        <div class="history-day__header">
+          <div>
+            <h3 class="history-day__title">${formatDateKey(day.key)}</h3>
+            <p class="history-day__summary">${done} of ${total} tasks completed</p>
+          </div>
+          <span class="history-day__score">${done}/${total}</span>
+        </div>
+        <ul class="history-day__tasks">
+          ${day.visibleTasks.map(task => `
+            <li class="history-task ${task.done ? 'history-task--done' : 'history-task--missed'}">
+              <span class="history-task__text">${escapeHtml(task.text)}</span>
+              <span class="history-task__meta">${task.time || 'Anytime'} - ${task.priority}</span>
+            </li>
+          `).join('')}
+        </ul>
+      </article>
+    `;
+  }).join('');
 }
 
 // ─── Focus Timer ─────────────────────────────────────────────
@@ -552,9 +664,20 @@ function init() {
   renderTimeline();
   updateStats();
   updateFocusDisplay();
+  renderHistory();
 
   // Shuffle
   $('#btn-shuffle').addEventListener('click', shuffleTheme);
+
+  $('#history-filters').addEventListener('click', (e) => {
+    const button = e.target.closest('[data-history-filter]');
+    if (!button) return;
+    historyFilter = button.dataset.historyFilter;
+    document.querySelectorAll('.history-filter').forEach(item => {
+      item.classList.toggle('history-filter--active', item === button);
+    });
+    renderHistory();
+  });
 
   // Task form toggle
   $('#btn-add-task').addEventListener('click', () => {
